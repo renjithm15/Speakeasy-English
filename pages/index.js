@@ -1,19 +1,19 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [mode, setMode] = useState("free");
   const [spoken, setSpoken] = useState("");
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
   const [voices, setVoices] = useState([]);
 
+  // ✅ Load voices correctly (Android safe)
   useEffect(() => {
-    const loadVoices = () => {
-      const v = speechSynthesis.getVoices();
+    const load = () => {
+      const v = window.speechSynthesis.getVoices();
       if (v.length > 0) setVoices(v);
     };
-    loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
   }, []);
 
   const SpeechRecognition =
@@ -21,9 +21,15 @@ export default function Home() {
     (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const speak = (text, lang) => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
-    speechSynthesis.speak(u);
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang;
+
+    // ✅ Explicit voice binding
+    const matched = voices.find(v => v.lang === lang);
+    if (matched) utter.voice = matched;
+
+    window.speechSynthesis.cancel(); // IMPORTANT on Android
+    window.speechSynthesis.speak(utter);
   };
 
   const startListening = () => {
@@ -32,63 +38,46 @@ export default function Home() {
       return;
     }
 
-    const r = new SpeechRecognition();
-    r.lang = "en-IN";
-    r.start();
+    const recog = new SpeechRecognition();
+    recog.lang = "en-IN";
+    recog.start();
 
-    r.onresult = (e) => {
+    recog.onresult = e => {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
       let en = "Good try. Speak slowly.";
       let ml = "നല്ല ശ്രമമാണ്. പതുക്കെ സംസാരിക്കൂ.";
 
+      if (text.split(" ").length > 4) {
+        en = "Very good. Your sentence is clear.";
+        ml = "വളരെ നല്ലതാണ്. നിങ്ങളുടെ വാക്യം വ്യക്തമാണ്.";
+      }
+
       setReplyEn(en);
       setReplyMl(ml);
 
+      // ✅ English first
       speak(en, "en-IN");
-      // Try Malayalam voice only if available
-const hasMalayalamVoice = voices.some(v => v.lang === "ml-IN");
 
-if (hasMalayalamVoice) {
-  setTimeout(() => {
-    speak(replyMl, "ml-IN");
-  }, 700);
-}
-
+      // ✅ Malayalam after short delay
+      setTimeout(() => {
+        speak(ml, "ml-IN");
+      }, 900);
     };
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>Malayalam supported English speaking app</p>
+      <p>English speaking practice with Malayalam support</p>
 
-      {/* MODE BUTTONS */}
-      <div style={{ marginBottom: 20 }}>
-        <button onClick={() => setMode("free")}>Free Speak</button>{" "}
-        <button onClick={() => setMode("daily")}>Daily</button>{" "}
-        <button onClick={() => setMode("interview")}>Interview</button>{" "}
-        <button onClick={() => setMode("office")}>Office</button>
-      </div>
-
-      {/* MODE TITLE */}
-      <h3>
-        {mode === "free" && "Free Speaking Practice"}
-        {mode === "daily" && "Daily Lessons"}
-        {mode === "interview" && "Interview Practice"}
-        {mode === "office" && "Office English"}
-      </h3>
-
-      {/* FREE MODE */}
-      {mode === "free" && (
-        <button
-          onClick={startListening}
-          style={{ fontSize: 18, padding: 12 }}
-        >
-          🎤 Speak English
-        </button>
-      )}
+      <button
+        onClick={startListening}
+        style={{ fontSize: 18, padding: 12 }}
+      >
+        🎤 Speak English
+      </button>
 
       {spoken && (
         <div style={{ marginTop: 20 }}>
