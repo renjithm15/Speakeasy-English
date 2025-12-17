@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import dailyLessons from "../data/dailyLessons";
 import interviewQuestions from "../data/interviewQuestions";
+import officeEnglish from "../data/officeEnglish";
 
 export default function Home() {
   const [mode, setMode] = useState("free");
   const [lessonIndex, setLessonIndex] = useState(0);
   const [interviewIndex, setInterviewIndex] = useState(0);
+  const [officeIndex, setOfficeIndex] = useState(0);
   const [spoken, setSpoken] = useState("");
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
@@ -47,8 +49,8 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      let en = "Good answer. Try to speak clearly.";
-      let ml = "നല്ല ഉത്തരമാണ്. വ്യക്തമായി സംസാരിക്കൂ.";
+      let en = "Good try. Speak clearly.";
+      let ml = "നല്ല ശ്രമമാണ്. വ്യക്തമായി സംസാരിക്കൂ.";
 
       if (mode === "daily") {
         const expected = dailyLessons[lessonIndex].en.toLowerCase();
@@ -62,8 +64,19 @@ export default function Home() {
       }
 
       if (mode === "interview") {
-        en = "Good answer. Add one example if possible.";
-        ml = "നല്ല ഉത്തരമാണ്. ഒരു ഉദാഹരണം കൂടി ചേർക്കാം.";
+        en = "Good interview answer. Add an example.";
+        ml = "നല്ല ഇന്റർവ്യൂ ഉത്തരമാണ്. ഒരു ഉദാഹരണം ചേർക്കൂ.";
+      }
+
+      if (mode === "office") {
+        const expected = officeEnglish[officeIndex].en.toLowerCase();
+        if (text.toLowerCase().includes(expected)) {
+          en = "Well done. This is professional English.";
+          ml = "വളരെ നല്ലത്. ഇത് പ്രൊഫഷണൽ ഇംഗ്ലീഷാണ്.";
+        } else {
+          en = "Good attempt. Try using the exact sentence.";
+          ml = "നല്ല ശ്രമമാണ്. കൃത്യമായ വാക്യം ഉപയോഗിക്കാൻ ശ്രമിക്കൂ.";
+        }
       }
 
       setReplyEn(en);
@@ -83,13 +96,13 @@ export default function Home() {
       <div style={{ marginBottom: 20 }}>
         <button onClick={() => setMode("free")}>Free Speak</button>{" "}
         <button onClick={() => setMode("daily")}>Daily Lessons</button>{" "}
-        <button onClick={() => setMode("interview")}>Interview</button>
+        <button onClick={() => setMode("interview")}>Interview</button>{" "}
+        <button onClick={() => setMode("office")}>Office</button>
       </div>
 
-      {/* Daily lessons */}
+      {/* Daily */}
       {mode === "daily" && (
-        <div style={{ marginBottom: 20 }}>
-          <h3>Daily Lesson</h3>
+        <div>
           <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>
           <p><b>English:</b> {dailyLessons[lessonIndex].en}</p>
           <button
@@ -102,12 +115,11 @@ export default function Home() {
         </div>
       )}
 
-      {/* Interview practice */}
+      {/* Interview */}
       {mode === "interview" && (
-        <div style={{ marginBottom: 20 }}>
-          <h3>Interview Question</h3>
+        <div>
           <p><b>Question:</b> {interviewQuestions[interviewIndex].q}</p>
-          <p><b>Hint (Malayalam):</b> {interviewQuestions[interviewIndex].hintMl}</p>
+          <p><b>Hint:</b> {interviewQuestions[interviewIndex].hintMl}</p>
           <button
             onClick={() =>
               setInterviewIndex(
@@ -120,10 +132,25 @@ export default function Home() {
         </div>
       )}
 
+      {/* Office */}
+      {mode === "office" && (
+        <div>
+          <p><b>Malayalam:</b> {officeEnglish[officeIndex].ml}</p>
+          <p><b>English:</b> {officeEnglish[officeIndex].en}</p>
+          <button
+            onClick={() =>
+              setOfficeIndex((officeIndex + 1) % officeEnglish.length)
+            }
+          >
+            Next Sentence
+          </button>
+        </div>
+      )}
+
       {/* Speak */}
       <button
         onClick={startListening}
-        style={{ fontSize: 18, padding: 12 }}
+        style={{ fontSize: 18, padding: 12, marginTop: 15 }}
       >
         🎤 Speak English
       </button>
