@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [mode, setMode] = useState("daily"); // daily | interview | office
   const [spoken, setSpoken] = useState("");
   const [aiEn, setAiEn] = useState("");
   const [aiMl, setAiMl] = useState("");
   const [voices, setVoices] = useState([]);
   const [step, setStep] = useState(0);
+  const [confidence, setConfidence] = useState(50); // 0–100
 
   /* ---------- Load voices ---------- */
   useEffect(() => {
     const load = () => {
-      const v = window.speechSynthesis.getVoices();
+      const v = speechSynthesis.getVoices();
       if (v.length > 0) setVoices(v);
     };
     load();
@@ -30,22 +32,31 @@ export default function Home() {
     speechSynthesis.speak(u);
   };
 
-  /* ---------- GUIDED CONVERSATION ENGINE ---------- */
-  const aiConversation = (text) => {
+  /* ---------- CONFIDENCE LOGIC ---------- */
+  const updateConfidence = (text) => {
+    let score = confidence;
+    if (text.split(" ").length >= 5) score += 2;
+    if (!text.toLowerCase().includes("am having")) score += 1;
+    if (score > 100) score = 100;
+    setConfidence(score);
+  };
+
+  /* ---------- CONVERSATION ENGINE ---------- */
+  const respond = (text) => {
     const t = text.toLowerCase();
 
     // Soft corrections (Indian English)
-    if (t.includes("am having") || t.includes("is having")) {
+    if (t.includes("am having")) {
       return {
-        en: "You can say, I have experience. What kind of work do you do?",
-        ml: "`am having` ഒഴിവാക്കി `I have` ഉപയോഗിക്കുക."
+        en: "You can say, I have experience. Where are you working now?",
+        ml: "`am having` ഒഴിവാക്കി `I have`."
       };
     }
 
     if (t.includes("years experience") && !t.includes("of")) {
       return {
-        en: "A natural way is, I have two years of experience. Where are you working now?",
-        ml: "`experience` മുമ്പ് `of` വരണം."
+        en: "A natural way is, I have two years of experience. What is your role?",
+        ml: "`experience` മുമ്പ് `of`."
       };
     }
 
@@ -56,24 +67,43 @@ export default function Home() {
       };
     }
 
-    if (t.includes("joined company")) {
+    // Mode-based conversation
+    if (mode === "interview") {
+      const interviewFlow = [
+        "Tell me about yourself.",
+        "What are your main skills?",
+        "Why should we hire you?",
+        "What are your career goals?"
+      ];
       return {
-        en: "You can say, I joined a company. Is it a private company or a startup?",
-        ml: "`company` മുമ്പ് `a` വേണം."
+        en: interviewFlow[step % interviewFlow.length],
+        ml: "ഇന്റർവ്യൂ ചോദ്യമാണ്."
       };
     }
 
-    // Conversation flow (no correction needed)
-    const flows = [
-      "Okay. Can you tell me about your job?",
-      "That’s good. What do you do daily at work?",
-      "Nice. How long have you been doing this work?",
-      "Understood. Do you like this job?",
-      "Good. What are you planning next in your career?"
+    if (mode === "office") {
+      const officeFlow = [
+        "What are you working on today?",
+        "Did you complete the task?",
+        "Any issue with the deadline?",
+        "Please explain your update."
+      ];
+      return {
+        en: officeFlow[step % officeFlow.length],
+        ml: "ഓഫീസ് സംഭാഷണം."
+      };
+    }
+
+    // Daily talk
+    const dailyFlow = [
+      "Okay. What do you do daily?",
+      "How was your day?",
+      "What are you learning now?",
+      "What is your plan for tomorrow?"
     ];
 
     return {
-      en: flows[step % flows.length],
+      en: dailyFlow[step % dailyFlow.length],
       ml: "തുടരൂ."
     };
   };
@@ -92,7 +122,9 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      const ai = aiConversation(text);
+      updateConfidence(text);
+
+      const ai = respond(text);
       setAiEn(ai.en);
       setAiMl(ai.ml);
 
@@ -108,9 +140,21 @@ export default function Home() {
       <h2>SpeakEasy English 🇮🇳</h2>
       <p>AI Conversation Practice</p>
 
+      {/* Modes */}
+      <div style={{ marginBottom: 10 }}>
+        <button onClick={() => setMode("daily")}>Daily Talk</button>{" "}
+        <button onClick={() => setMode("interview")}>Interview</button>{" "}
+        <button onClick={() => setMode("office")}>Office Call</button>
+      </div>
+
+      {/* Confidence */}
+      <div style={{ marginBottom: 10 }}>
+        <b>Confidence:</b> {confidence}%
+      </div>
+
       <button
         onClick={startListening}
-        style={{ fontSize: 18, padding: 12, marginTop: 15 }}
+        style={{ fontSize: 18, padding: 12 }}
       >
         🎤 Speak
       </button>
