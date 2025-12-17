@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
-import dailyLessons from "../data/dailyLessons";
-import interviewQuestions from "../data/interviewQuestions";
-import officeEnglish from "../data/officeEnglish";
 
 export default function Home() {
-  const [mode, setMode] = useState("free");
   const [spoken, setSpoken] = useState("");
   const [aiEn, setAiEn] = useState("");
   const [aiMl, setAiMl] = useState("");
   const [voices, setVoices] = useState([]);
+  const [step, setStep] = useState(0);
 
   /* ---------- Load voices ---------- */
   useEffect(() => {
@@ -33,59 +30,52 @@ export default function Home() {
     speechSynthesis.speak(u);
   };
 
-  /* ---------- APP-LIKE AI TUTOR ---------- */
-  const aiTutor = (text) => {
+  /* ---------- GUIDED CONVERSATION ENGINE ---------- */
+  const aiConversation = (text) => {
     const t = text.toLowerCase();
 
-    // Pattern-based corrections (Indian English focused)
+    // Soft corrections (Indian English)
     if (t.includes("am having") || t.includes("is having")) {
       return {
-        en: "You can say: I have experience.",
-        ml: "ഇവിടെ `I have experience` എന്നാണ് നാചുറൽ."
+        en: "You can say, I have experience. What kind of work do you do?",
+        ml: "`am having` ഒഴിവാക്കി `I have` ഉപയോഗിക്കുക."
       };
     }
 
     if (t.includes("years experience") && !t.includes("of")) {
       return {
-        en: "A natural way is: I have two years of experience.",
+        en: "A natural way is, I have two years of experience. Where are you working now?",
         ml: "`experience` മുമ്പ് `of` വരണം."
       };
     }
 
     if (t.startsWith("he have") || t.startsWith("she have")) {
       return {
-        en: "Try saying: He has experience.",
-        ml: "`He / She` വന്നാൽ `has` ആണ്."
-      };
-    }
-
-    if (t.includes("yesterday") && t.includes("go")) {
-      return {
-        en: "You can say: I went yesterday.",
-        ml: "`yesterday` വന്നാൽ past tense."
+        en: "You can say, he has experience. What does he do?",
+        ml: "`He / She` വന്നാൽ `has`."
       };
     }
 
     if (t.includes("joined company")) {
       return {
-        en: "A better way is: I joined a company.",
-        ml: "`company` മുമ്പ് `a` വരണം."
+        en: "You can say, I joined a company. Is it a private company or a startup?",
+        ml: "`company` മുമ്പ് `a` വേണം."
       };
     }
 
-    // If sentence is okay → still give polished Indian English
-    return {
-      en: "You can also say it like this: " + polishEnglish(text),
-      ml: "ഇത് കൂടുതൽ നാചുറൽ ആയി പറഞ്ഞതാണ്."
-    };
-  };
+    // Conversation flow (no correction needed)
+    const flows = [
+      "Okay. Can you tell me about your job?",
+      "That’s good. What do you do daily at work?",
+      "Nice. How long have you been doing this work?",
+      "Understood. Do you like this job?",
+      "Good. What are you planning next in your career?"
+    ];
 
-  // Simple polishing (keeps meaning, improves flow)
-  const polishEnglish = (text) => {
-    return text
-      .replace("I am", "I’m")
-      .replace("do not", "don’t")
-      .replace("it is", "it’s");
+    return {
+      en: flows[step % flows.length],
+      ml: "തുടരൂ."
+    };
   };
 
   const startListening = () => {
@@ -102,30 +92,21 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      const ai = aiTutor(text);
+      const ai = aiConversation(text);
       setAiEn(ai.en);
       setAiMl(ai.ml);
 
       speak(ai.en, "en-IN");
       setTimeout(() => speak(ai.ml, "ml-IN"), 800);
+
+      setStep(step + 1);
     };
   };
 
   return (
     <div style={{ padding: 20, maxWidth: 520, margin: "auto" }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>AI English Tutor (App-style)</p>
-
-      <div style={{ marginBottom: 15 }}>
-        <button onClick={() => setMode("free")}>Free</button>{" "}
-        <button onClick={() => setMode("daily")}>Daily</button>{" "}
-        <button onClick={() => setMode("interview")}>Interview</button>{" "}
-        <button onClick={() => setMode("office")}>Office</button>
-      </div>
-
-      {mode === "daily" && <p><b>Malayalam:</b> {dailyLessons[0].ml}</p>}
-      {mode === "interview" && <p><b>Question:</b> {interviewQuestions[0].q}</p>}
-      {mode === "office" && <p><b>Malayalam:</b> {officeEnglish[0].ml}</p>}
+      <p>AI Conversation Practice</p>
 
       <button
         onClick={startListening}
