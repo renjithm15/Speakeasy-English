@@ -13,13 +13,14 @@ export default function Home() {
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
 
+  // Progress
   const [sessions, setSessions] = useState(0);
   const [lessonsDone, setLessonsDone] = useState(0);
   const [streak, setStreak] = useState(0);
 
   const [voices, setVoices] = useState([]);
 
-  /* -------------------- INIT -------------------- */
+  /* ---------- INIT ---------- */
   useEffect(() => {
     const loadVoices = () => {
       const v = window.speechSynthesis.getVoices();
@@ -49,47 +50,48 @@ export default function Home() {
     window.speechSynthesis.speak(u);
   };
 
-  /* ---------------- SMART TUTOR LOGIC ---------------- */
-
+  /* ---------- SMART HUMAN TUTOR ---------- */
   const smartTutor = (text) => {
-    const lower = text.toLowerCase();
+    const t = text.toLowerCase();
 
-    // ❌ am having / is having
-    if (lower.includes("am having") || lower.includes("is having")) {
+    if (t.includes("am having") || t.includes("is having")) {
       return {
-        en: "This sentence is not correct. Say: I have experience.",
-        ml: "`am having` ഇംഗ്ലീഷിൽ ഇവിടെ ഉപയോഗിക്കരുത്. `I have experience` എന്ന് പറയണം."
+        en: "I understand you. But in natural English, we say: I have experience. Please try again.",
+        ml: "`am having` ഇവിടെ ഉപയോഗിക്കാറില്ല. `I have experience` എന്നാണ് പറയേണ്ടത്."
       };
     }
 
-    // ❌ experience count
-    if (lower.includes("two years experience")) {
+    if (t.includes("years experience") && !t.includes("of")) {
       return {
-        en: "Say: I have two years of experience.",
-        ml: "`experience` മുൻപിൽ `of` വേണം."
+        en: "Say it this way: I have two years of experience. This sounds natural.",
+        ml: "`experience` മുമ്പ് `of` വേണം."
       };
     }
 
-    // ❌ he/she misuse
-    if (lower.startsWith("he have") || lower.startsWith("she have")) {
+    if (t.startsWith("he have") || t.startsWith("she have")) {
       return {
-        en: "Use has. Say: He has experience.",
-        ml: "`He / She` ഉപയോഗിക്കുമ്പോൾ `has` ആണ് ശരി."
+        en: "Small correction. With he or she, we use has. Say: He has experience.",
+        ml: "`He / She` വന്നാൽ `has` ആണ് ശരി."
       };
     }
 
-    // ❌ tense issue
-    if (lower.includes("yesterday") && lower.includes("go")) {
+    if (t.includes("yesterday") && t.includes("go")) {
       return {
-        en: "Use past tense. Say: I went yesterday.",
+        en: "Because you said yesterday, use past tense. Say: I went yesterday.",
         ml: "`yesterday` വന്നാൽ past tense വേണം."
       };
     }
 
-    // ✅ Default positive tutor
+    if (t.includes("do not") || t.includes("i am") || t.includes("it is")) {
+      return {
+        en: "In speaking, we usually use short forms like don’t, I’m, it’s. Try using them.",
+        ml: "സംസാരിക്കുമ്പോൾ short forms ആണ് നാചുറൽ: don’t, I’m, it’s."
+      };
+    }
+
     return {
-      en: "Good sentence. Now try to speak a little more confidently.",
-      ml: "വാക്യം ശരിയാണ്. ഇനി ആത്മവിശ്വാസത്തോടെ പറയൂ."
+      en: "That sounds okay. Now say the same sentence a little more smoothly.",
+      ml: "വാക്യം ശരിയാണ്. ഇനി അല്പം നാചുറലായി പറയൂ."
     };
   };
 
@@ -128,7 +130,6 @@ export default function Home() {
       setSpoken(text);
 
       const tutor = smartTutor(text);
-
       setReplyEn(tutor.en);
       setReplyMl(tutor.ml);
 
@@ -140,9 +141,9 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>Smart English Tutor with Malayalam Support</p>
+      <p>Human-like English tutor with Malayalam support</p>
 
       <div style={{ marginBottom: 15 }}>
         <button onClick={() => setMode("free")}>Free</button>{" "}
@@ -151,15 +152,9 @@ export default function Home() {
         <button onClick={() => setMode("office")}>Office</button>
       </div>
 
-      {mode === "daily" && (
-        <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>
-      )}
-      {mode === "interview" && (
-        <p><b>Question:</b> {interviewQuestions[interviewIndex].q}</p>
-      )}
-      {mode === "office" && (
-        <p><b>Malayalam:</b> {officeEnglish[officeIndex].ml}</p>
-      )}
+      {mode === "daily" && <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>}
+      {mode === "interview" && <p><b>Question:</b> {interviewQuestions[interviewIndex].q}</p>}
+      {mode === "office" && <p><b>Malayalam:</b> {officeEnglish[officeIndex].ml}</p>}
 
       <button
         onClick={startListening}
@@ -178,9 +173,9 @@ export default function Home() {
 
       <div style={{ marginTop: 25, padding: 15, border: "1px solid #ccc" }}>
         <h3>📊 Progress</h3>
-        <p>Sessions: {sessions}</p>
-        <p>Lessons Done: {lessonsDone}</p>
-        <p>Streak: {streak} 🔥</p>
+        <p>Speaking Sessions: {sessions}</p>
+        <p>Lessons Completed: {lessonsDone}</p>
+        <p>Practice Streak: {streak} 🔥</p>
       </div>
     </div>
   );
