@@ -5,36 +5,19 @@ import officeEnglish from "../data/officeEnglish";
 
 export default function Home() {
   const [mode, setMode] = useState("free");
-  const [lessonIndex, setLessonIndex] = useState(0);
-  const [interviewIndex, setInterviewIndex] = useState(0);
-  const [officeIndex, setOfficeIndex] = useState(0);
-
   const [spoken, setSpoken] = useState("");
-  const [replyEn, setReplyEn] = useState("");
-  const [replyMl, setReplyMl] = useState("");
-
-  // Progress
-  const [sessions, setSessions] = useState(0);
-  const [lessonsDone, setLessonsDone] = useState(0);
-  const [streak, setStreak] = useState(0);
-
+  const [aiEn, setAiEn] = useState("");
+  const [aiMl, setAiMl] = useState("");
   const [voices, setVoices] = useState([]);
 
-  /* ---------- INIT ---------- */
+  /* ---------- Load voices ---------- */
   useEffect(() => {
-    const loadVoices = () => {
+    const load = () => {
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) setVoices(v);
     };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-
-    const saved = JSON.parse(localStorage.getItem("progress"));
-    if (saved) {
-      setSessions(saved.sessions || 0);
-      setLessonsDone(saved.lessonsDone || 0);
-      setStreak(saved.streak || 0);
-    }
+    load();
+    speechSynthesis.onvoiceschanged = load;
   }, []);
 
   const SpeechRecognition =
@@ -44,75 +27,65 @@ export default function Home() {
   const speak = (text, lang) => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
-    const matched = voices.find(v => v.lang === lang);
-    if (matched) u.voice = matched;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+    const voice = voices.find(v => v.lang === lang);
+    if (voice) u.voice = voice;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
   };
 
-  /* ---------- SMART HUMAN TUTOR ---------- */
-  const smartTutor = (text) => {
+  /* ---------- APP-LIKE AI TUTOR ---------- */
+  const aiTutor = (text) => {
     const t = text.toLowerCase();
 
+    // Pattern-based corrections (Indian English focused)
     if (t.includes("am having") || t.includes("is having")) {
       return {
-        en: "I understand you. But in natural English, we say: I have experience. Please try again.",
-        ml: "`am having` ഇവിടെ ഉപയോഗിക്കാറില്ല. `I have experience` എന്നാണ് പറയേണ്ടത്."
+        en: "You can say: I have experience.",
+        ml: "ഇവിടെ `I have experience` എന്നാണ് നാചുറൽ."
       };
     }
 
     if (t.includes("years experience") && !t.includes("of")) {
       return {
-        en: "Say it this way: I have two years of experience. This sounds natural.",
-        ml: "`experience` മുമ്പ് `of` വേണം."
+        en: "A natural way is: I have two years of experience.",
+        ml: "`experience` മുമ്പ് `of` വരണം."
       };
     }
 
     if (t.startsWith("he have") || t.startsWith("she have")) {
       return {
-        en: "Small correction. With he or she, we use has. Say: He has experience.",
-        ml: "`He / She` വന്നാൽ `has` ആണ് ശരി."
+        en: "Try saying: He has experience.",
+        ml: "`He / She` വന്നാൽ `has` ആണ്."
       };
     }
 
     if (t.includes("yesterday") && t.includes("go")) {
       return {
-        en: "Because you said yesterday, use past tense. Say: I went yesterday.",
-        ml: "`yesterday` വന്നാൽ past tense വേണം."
+        en: "You can say: I went yesterday.",
+        ml: "`yesterday` വന്നാൽ past tense."
       };
     }
 
-    if (t.includes("do not") || t.includes("i am") || t.includes("it is")) {
+    if (t.includes("joined company")) {
       return {
-        en: "In speaking, we usually use short forms like don’t, I’m, it’s. Try using them.",
-        ml: "സംസാരിക്കുമ്പോൾ short forms ആണ് നാചുറൽ: don’t, I’m, it’s."
+        en: "A better way is: I joined a company.",
+        ml: "`company` മുമ്പ് `a` വരണം."
       };
     }
 
+    // If sentence is okay → still give polished Indian English
     return {
-      en: "That sounds okay. Now say the same sentence a little more smoothly.",
-      ml: "വാക്യം ശരിയാണ്. ഇനി അല്പം നാചുറലായി പറയൂ."
+      en: "You can also say it like this: " + polishEnglish(text),
+      ml: "ഇത് കൂടുതൽ നാചുറൽ ആയി പറഞ്ഞതാണ്."
     };
   };
 
-  const updateProgress = () => {
-    const newSessions = sessions + 1;
-    const newLessons =
-      mode !== "free" ? lessonsDone + 1 : lessonsDone;
-    const newStreak = streak + 1;
-
-    setSessions(newSessions);
-    setLessonsDone(newLessons);
-    setStreak(newStreak);
-
-    localStorage.setItem(
-      "progress",
-      JSON.stringify({
-        sessions: newSessions,
-        lessonsDone: newLessons,
-        streak: newStreak
-      })
-    );
+  // Simple polishing (keeps meaning, improves flow)
+  const polishEnglish = (text) => {
+    return text
+      .replace("I am", "I’m")
+      .replace("do not", "don’t")
+      .replace("it is", "it’s");
   };
 
   const startListening = () => {
@@ -121,29 +94,27 @@ export default function Home() {
       return;
     }
 
-    const recog = new SpeechRecognition();
-    recog.lang = "en-IN";
-    recog.start();
+    const r = new SpeechRecognition();
+    r.lang = "en-IN";
+    r.start();
 
-    recog.onresult = e => {
+    r.onresult = (e) => {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      const tutor = smartTutor(text);
-      setReplyEn(tutor.en);
-      setReplyMl(tutor.ml);
+      const ai = aiTutor(text);
+      setAiEn(ai.en);
+      setAiMl(ai.ml);
 
-      speak(tutor.en, "en-IN");
-      setTimeout(() => speak(tutor.ml, "ml-IN"), 900);
-
-      updateProgress();
+      speak(ai.en, "en-IN");
+      setTimeout(() => speak(ai.ml, "ml-IN"), 800);
     };
   };
 
   return (
-    <div style={{ padding: 20, maxWidth: 500, margin: "auto" }}>
+    <div style={{ padding: 20, maxWidth: 520, margin: "auto" }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>Human-like English tutor with Malayalam support</p>
+      <p>AI English Tutor (App-style)</p>
 
       <div style={{ marginBottom: 15 }}>
         <button onClick={() => setMode("free")}>Free</button>{" "}
@@ -152,31 +123,24 @@ export default function Home() {
         <button onClick={() => setMode("office")}>Office</button>
       </div>
 
-      {mode === "daily" && <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>}
-      {mode === "interview" && <p><b>Question:</b> {interviewQuestions[interviewIndex].q}</p>}
-      {mode === "office" && <p><b>Malayalam:</b> {officeEnglish[officeIndex].ml}</p>}
+      {mode === "daily" && <p><b>Malayalam:</b> {dailyLessons[0].ml}</p>}
+      {mode === "interview" && <p><b>Question:</b> {interviewQuestions[0].q}</p>}
+      {mode === "office" && <p><b>Malayalam:</b> {officeEnglish[0].ml}</p>}
 
       <button
         onClick={startListening}
         style={{ fontSize: 18, padding: 12, marginTop: 15 }}
       >
-        🎤 Speak English
+        🎤 Speak
       </button>
 
       {spoken && (
         <div style={{ marginTop: 20 }}>
           <p><b>You:</b> {spoken}</p>
-          <p><b>Tutor (English):</b> {replyEn}</p>
-          <p><b>Tutor (Malayalam):</b> {replyMl}</p>
+          <p><b>AI:</b> {aiEn}</p>
+          <p style={{ fontSize: 14 }}>{aiMl}</p>
         </div>
       )}
-
-      <div style={{ marginTop: 25, padding: 15, border: "1px solid #ccc" }}>
-        <h3>📊 Progress</h3>
-        <p>Speaking Sessions: {sessions}</p>
-        <p>Lessons Completed: {lessonsDone}</p>
-        <p>Practice Streak: {streak} 🔥</p>
-      </div>
     </div>
   );
 }
