@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 
 export default function Home() {
+  const [mode, setMode] = useState("free");
   const [spoken, setSpoken] = useState("");
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
@@ -11,7 +12,6 @@ export default function Home() {
       const v = speechSynthesis.getVoices();
       if (v.length > 0) setVoices(v);
     };
-
     loadVoices();
     speechSynthesis.onvoiceschanged = loadVoices;
   }, []);
@@ -23,17 +23,6 @@ export default function Home() {
   const speak = (text, lang) => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
-
-    if (lang === "en-IN") {
-      const indian = voices.find(v => v.lang === "en-IN");
-      if (indian) u.voice = indian;
-    }
-
-    if (lang === "ml-IN") {
-      const mal = voices.find(v => v.lang === "ml-IN");
-      if (mal) u.voice = mal;
-    }
-
     speechSynthesis.speak(u);
   };
 
@@ -51,39 +40,46 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      // ALWAYS set Malayalam text
-      let en = "Good try. Speak slowly and confidently.";
-      let ml = "നല്ല ശ്രമമാണ്. പതുക്കെയും ആത്മവിശ്വാസത്തോടെയും സംസാരിക്കൂ.";
-
-      if (text.split(" ").length > 4) {
-        en = "Very good. Your sentence is clear.";
-        ml = "വളരെ നല്ലതാണ്. നിങ്ങളുടെ വാക്യം വ്യക്തമാണ്.";
-      }
+      let en = "Good try. Speak slowly.";
+      let ml = "നല്ല ശ്രമമാണ്. പതുക്കെ സംസാരിക്കൂ.";
 
       setReplyEn(en);
       setReplyMl(ml);
 
-      // Speak English always
       speak(en, "en-IN");
-
-      // Try Malayalam voice (if available)
-      setTimeout(() => {
-        speak(ml, "ml-IN");
-      }, 700);
     };
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>English speaking practice with Malayalam support</p>
+      <p>Malayalam supported English speaking app</p>
 
-      <button
-        onClick={startListening}
-        style={{ fontSize: 18, padding: 12 }}
-      >
-        🎤 Speak English
-      </button>
+      {/* MODE BUTTONS */}
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={() => setMode("free")}>Free Speak</button>{" "}
+        <button onClick={() => setMode("daily")}>Daily</button>{" "}
+        <button onClick={() => setMode("interview")}>Interview</button>{" "}
+        <button onClick={() => setMode("office")}>Office</button>
+      </div>
+
+      {/* MODE TITLE */}
+      <h3>
+        {mode === "free" && "Free Speaking Practice"}
+        {mode === "daily" && "Daily Lessons"}
+        {mode === "interview" && "Interview Practice"}
+        {mode === "office" && "Office English"}
+      </h3>
+
+      {/* FREE MODE */}
+      {mode === "free" && (
+        <button
+          onClick={startListening}
+          style={{ fontSize: 18, padding: 12 }}
+        >
+          🎤 Speak English
+        </button>
+      )}
 
       {spoken && (
         <div style={{ marginTop: 20 }}>
