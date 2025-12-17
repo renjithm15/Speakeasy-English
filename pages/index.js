@@ -195,3 +195,25 @@ export default function Home() {
     </div>
   );
 }
+{/* Certificate */}
+{sessions >= 50 && lessonsDone >= 20 && (
+  <div style={{ marginTop: 30, padding: 20, border: "2px solid #000" }}>
+    <h2>🎓 Certificate of Completion</h2>
+    <p>This certifies that</p>
+    <h3 style={{ margin: "10px 0" }}>Renjith</h3>
+    <p>
+      has successfully completed the <b>Career English Speaking Course</b>
+      <br />
+      with Malayalam support.
+    </p>
+    <p>Date: {new Date().toLocaleDateString()}</p>
+
+    <button
+      onClick={() => window.print()}
+      style={{ marginTop: 15, padding: 10, fontSize: 16 }}
+    >
+      🧾 Download / Print Certificate
+    </button>
+  </div>
+)}
+
