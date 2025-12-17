@@ -1,109 +1,86 @@
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [mode, setMode] = useState("daily"); // daily | interview | office
   const [spoken, setSpoken] = useState("");
   const [aiEn, setAiEn] = useState("");
   const [aiMl, setAiMl] = useState("");
   const [voices, setVoices] = useState([]);
   const [step, setStep] = useState(0);
-  const [confidence, setConfidence] = useState(50); // 0–100
 
-  /* ---------- Load voices ---------- */
+  /* ---------- Load voices (Android safe) ---------- */
   useEffect(() => {
     const load = () => {
-      const v = speechSynthesis.getVoices();
+      const v = window.speechSynthesis.getVoices();
       if (v.length > 0) setVoices(v);
     };
     load();
-    speechSynthesis.onvoiceschanged = load;
+    window.speechSynthesis.onvoiceschanged = load;
   }, []);
 
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
 
-  const speak = (text, lang) => {
+  const speakEnglish = (text) => {
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
-    const voice = voices.find(v => v.lang === lang);
+    u.lang = "en-IN";
+    const voice = voices.find(v => v.lang === "en-IN");
     if (voice) u.voice = voice;
-    speechSynthesis.cancel();
-    speechSynthesis.speak(u);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
   };
 
-  /* ---------- CONFIDENCE LOGIC ---------- */
-  const updateConfidence = (text) => {
-    let score = confidence;
-    if (text.split(" ").length >= 5) score += 2;
-    if (!text.toLowerCase().includes("am having")) score += 1;
-    if (score > 100) score = 100;
-    setConfidence(score);
+  const speakMalayalam = (text) => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = "ml-IN";
+    const voice = voices.find(v => v.lang === "ml-IN");
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
   };
 
-  /* ---------- CONVERSATION ENGINE ---------- */
+  /* ---------- CORRECTION + CONVERSATION ENGINE ---------- */
   const respond = (text) => {
     const t = text.toLowerCase();
 
-    // Soft corrections (Indian English)
-    if (t.includes("am having")) {
+    // 🔴 Corrections (HIGH PRIORITY)
+    if (t.includes("am having") || t.includes("is having")) {
       return {
-        en: "You can say, I have experience. Where are you working now?",
-        ml: "`am having` ഒഴിവാക്കി `I have`."
+        en: "You can say: I have experience. Where are you working now?",
+        ml: "`am having` ഒഴിവാക്കി `I have` ഉപയോഗിക്കുക."
       };
     }
 
     if (t.includes("years experience") && !t.includes("of")) {
       return {
-        en: "A natural way is, I have two years of experience. What is your role?",
-        ml: "`experience` മുമ്പ് `of`."
+        en: "A natural way is: I have two years of experience. What is your role?",
+        ml: "`experience` മുമ്പ് `of` വേണം."
       };
     }
 
     if (t.startsWith("he have") || t.startsWith("she have")) {
       return {
-        en: "You can say, he has experience. What does he do?",
+        en: "You can say: he has experience. What does he do?",
         ml: "`He / She` വന്നാൽ `has`."
       };
     }
 
-    // Mode-based conversation
-    if (mode === "interview") {
-      const interviewFlow = [
-        "Tell me about yourself.",
-        "What are your main skills?",
-        "Why should we hire you?",
-        "What are your career goals?"
-      ];
+    if (t.includes("yesterday") && t.includes("go")) {
       return {
-        en: interviewFlow[step % interviewFlow.length],
-        ml: "ഇന്റർവ്യൂ ചോദ്യമാണ്."
+        en: "You can say: I went yesterday. What did you do there?",
+        ml: "`yesterday` വന്നാൽ past tense."
       };
     }
 
-    if (mode === "office") {
-      const officeFlow = [
-        "What are you working on today?",
-        "Did you complete the task?",
-        "Any issue with the deadline?",
-        "Please explain your update."
-      ];
-      return {
-        en: officeFlow[step % officeFlow.length],
-        ml: "ഓഫീസ് സംഭാഷണം."
-      };
-    }
-
-    // Daily talk
-    const dailyFlow = [
-      "Okay. What do you do daily?",
-      "How was your day?",
-      "What are you learning now?",
-      "What is your plan for tomorrow?"
+    // 🟢 Conversation flow (only if no correction)
+    const flow = [
+      "Okay. What do you do for work?",
+      "That’s good. How long have you been doing this?",
+      "What skills are you improving now?",
+      "What is your next career goal?"
     ];
 
     return {
-      en: dailyFlow[step % dailyFlow.length],
+      en: flow[step % flow.length],
       ml: "തുടരൂ."
     };
   };
@@ -122,14 +99,17 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      updateConfidence(text);
-
       const ai = respond(text);
       setAiEn(ai.en);
       setAiMl(ai.ml);
 
-      speak(ai.en, "en-IN");
-      setTimeout(() => speak(ai.ml, "ml-IN"), 800);
+      // ✅ English ALWAYS speaks
+      speakEnglish(ai.en);
+
+      // Malayalam only after delay
+      if (ai.ml) {
+        setTimeout(() => speakMalayalam(ai.ml), 900);
+      }
 
       setStep(step + 1);
     };
@@ -139,18 +119,6 @@ export default function Home() {
     <div style={{ padding: 20, maxWidth: 520, margin: "auto" }}>
       <h2>SpeakEasy English 🇮🇳</h2>
       <p>AI Conversation Practice</p>
-
-      {/* Modes */}
-      <div style={{ marginBottom: 10 }}>
-        <button onClick={() => setMode("daily")}>Daily Talk</button>{" "}
-        <button onClick={() => setMode("interview")}>Interview</button>{" "}
-        <button onClick={() => setMode("office")}>Office Call</button>
-      </div>
-
-      {/* Confidence */}
-      <div style={{ marginBottom: 10 }}>
-        <b>Confidence:</b> {confidence}%
-      </div>
 
       <button
         onClick={startListening}
@@ -162,7 +130,7 @@ export default function Home() {
       {spoken && (
         <div style={{ marginTop: 20 }}>
           <p><b>You:</b> {spoken}</p>
-          <p><b>AI:</b> {aiEn}</p>
+          <p><b>AI (English):</b> {aiEn}</p>
           <p style={{ fontSize: 14 }}>{aiMl}</p>
         </div>
       )}
