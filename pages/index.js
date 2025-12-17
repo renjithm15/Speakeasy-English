@@ -47,6 +47,15 @@ export default function Home() {
       setReplyMl(ml);
 
       speak(en, "en-IN");
+      // Try Malayalam voice only if available
+const hasMalayalamVoice = voices.some(v => v.lang === "ml-IN");
+
+if (hasMalayalamVoice) {
+  setTimeout(() => {
+    speak(replyMl, "ml-IN");
+  }, 700);
+}
+
     };
   };
 
