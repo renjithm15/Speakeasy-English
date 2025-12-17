@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import dailyLessons from "../data/dailyLessons";
+import interviewQuestions from "../data/interviewQuestions";
 
 export default function Home() {
   const [mode, setMode] = useState("free");
   const [lessonIndex, setLessonIndex] = useState(0);
+  const [interviewIndex, setInterviewIndex] = useState(0);
   const [spoken, setSpoken] = useState("");
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
   const [voices, setVoices] = useState([]);
 
-  // Load voices correctly (Android safe)
   useEffect(() => {
     const load = () => {
       const v = window.speechSynthesis.getVoices();
@@ -26,10 +27,8 @@ export default function Home() {
   const speak = (text, lang) => {
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
-
     const matched = voices.find(v => v.lang === lang);
     if (matched) u.voice = matched;
-
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   };
@@ -48,8 +47,8 @@ export default function Home() {
       const text = e.results[0][0].transcript;
       setSpoken(text);
 
-      let en = "Good try. Speak slowly.";
-      let ml = "നല്ല ശ്രമമാണ്. പതുക്കെ സംസാരിക്കൂ.";
+      let en = "Good answer. Try to speak clearly.";
+      let ml = "നല്ല ഉത്തരമാണ്. വ്യക്തമായി സംസാരിക്കൂ.";
 
       if (mode === "daily") {
         const expected = dailyLessons[lessonIndex].en.toLowerCase();
@@ -60,6 +59,11 @@ export default function Home() {
           en = "Almost correct. Try again.";
           ml = "ശരിയാകാൻ അടുത്തിരിക്കുന്നു. വീണ്ടും ശ്രമിക്കൂ.";
         }
+      }
+
+      if (mode === "interview") {
+        en = "Good answer. Add one example if possible.";
+        ml = "നല്ല ഉത്തരമാണ്. ഒരു ഉദാഹരണം കൂടി ചേർക്കാം.";
       }
 
       setReplyEn(en);
@@ -78,15 +82,16 @@ export default function Home() {
       {/* Mode buttons */}
       <div style={{ marginBottom: 20 }}>
         <button onClick={() => setMode("free")}>Free Speak</button>{" "}
-        <button onClick={() => setMode("daily")}>Daily Lessons</button>
+        <button onClick={() => setMode("daily")}>Daily Lessons</button>{" "}
+        <button onClick={() => setMode("interview")}>Interview</button>
       </div>
 
-      {/* Daily lesson view */}
+      {/* Daily lessons */}
       {mode === "daily" && (
         <div style={{ marginBottom: 20 }}>
           <h3>Daily Lesson</h3>
           <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>
-          <p><b>Expected English:</b> {dailyLessons[lessonIndex].en}</p>
+          <p><b>English:</b> {dailyLessons[lessonIndex].en}</p>
           <button
             onClick={() =>
               setLessonIndex((lessonIndex + 1) % dailyLessons.length)
@@ -97,7 +102,25 @@ export default function Home() {
         </div>
       )}
 
-      {/* Speak button */}
+      {/* Interview practice */}
+      {mode === "interview" && (
+        <div style={{ marginBottom: 20 }}>
+          <h3>Interview Question</h3>
+          <p><b>Question:</b> {interviewQuestions[interviewIndex].q}</p>
+          <p><b>Hint (Malayalam):</b> {interviewQuestions[interviewIndex].hintMl}</p>
+          <button
+            onClick={() =>
+              setInterviewIndex(
+                (interviewIndex + 1) % interviewQuestions.length
+              )
+            }
+          >
+            Next Question
+          </button>
+        </div>
+      )}
+
+      {/* Speak */}
       <button
         onClick={startListening}
         style={{ fontSize: 18, padding: 12 }}
