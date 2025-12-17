@@ -1,40 +1,71 @@
+import { useState } from "react";
+
 export default function Home() {
+  const [spoken, setSpoken] = useState("");
+  const [reply, setReply] = useState("");
 
-  const speakIndianEnglish = () => {
-    const text = "Hello Renjith. Welcome to SpeakEasy English.";
+  const SpeechRecognition =
+    typeof window !== "undefined" &&
+    (window.SpeechRecognition || window.webkitSpeechRecognition);
 
+  const speakIndian = (text) => {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-IN"; // 🇮🇳 Indian English
+    utterance.lang = "en-IN";
 
     const voices = speechSynthesis.getVoices();
-
-    // Try to find Indian English voice
-    const indianVoice = voices.find(
-      v =>
-        v.lang === "en-IN" ||
-        v.name.toLowerCase().includes("india") ||
-        v.name.toLowerCase().includes("ravi") ||
-        v.name.toLowerCase().includes("heera")
+    const indianVoice = voices.find(v =>
+      v.lang === "en-IN" ||
+      v.name.toLowerCase().includes("india") ||
+      v.name.toLowerCase().includes("ravi") ||
+      v.name.toLowerCase().includes("heera")
     );
 
-    if (indianVoice) {
-      utterance.voice = indianVoice;
+    if (indianVoice) utterance.voice = indianVoice;
+    speechSynthesis.speak(utterance);
+  };
+
+  const startListening = () => {
+    if (!SpeechRecognition) {
+      alert("Please use Chrome browser");
+      return;
     }
 
-    speechSynthesis.speak(utterance);
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.start();
+
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      setSpoken(text);
+
+      let response = "Good try. Speak slowly and confidently.";
+      if (text.split(" ").length > 4) {
+        response = "Very good. Your sentence is clear.";
+      }
+
+      setReply(response);
+      speakIndian(response);
+    };
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>Indian English speaking practice app</p>
+      <p>Speak in English. I will help you.</p>
 
       <button
-        onClick={speakIndianEnglish}
+        onClick={startListening}
         style={{ fontSize: 18, padding: 12 }}
       >
-        🔊 Indian English Voice
+        🎤 Start Speaking
       </button>
+
+      {spoken && (
+        <div style={{ marginTop: 20 }}>
+          <p><b>You said:</b> {spoken}</p>
+          <p><b>AI:</b> {reply}</p>
+        </div>
+      )}
     </div>
   );
 }
