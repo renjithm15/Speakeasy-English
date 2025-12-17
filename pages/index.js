@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import dailyLessons from "../data/dailyLessons";
 
 export default function Home() {
+  const [mode, setMode] = useState("free");
+  const [lessonIndex, setLessonIndex] = useState(0);
   const [spoken, setSpoken] = useState("");
   const [replyEn, setReplyEn] = useState("");
   const [replyMl, setReplyMl] = useState("");
   const [voices, setVoices] = useState([]);
 
-  // ✅ Load voices correctly (Android safe)
+  // Load voices correctly (Android safe)
   useEffect(() => {
     const load = () => {
       const v = window.speechSynthesis.getVoices();
@@ -21,15 +24,14 @@ export default function Home() {
     (window.SpeechRecognition || window.webkitSpeechRecognition);
 
   const speak = (text, lang) => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = lang;
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
 
-    // ✅ Explicit voice binding
     const matched = voices.find(v => v.lang === lang);
-    if (matched) utter.voice = matched;
+    if (matched) u.voice = matched;
 
-    window.speechSynthesis.cancel(); // IMPORTANT on Android
-    window.speechSynthesis.speak(utter);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(u);
   };
 
   const startListening = () => {
@@ -49,29 +51,53 @@ export default function Home() {
       let en = "Good try. Speak slowly.";
       let ml = "നല്ല ശ്രമമാണ്. പതുക്കെ സംസാരിക്കൂ.";
 
-      if (text.split(" ").length > 4) {
-        en = "Very good. Your sentence is clear.";
-        ml = "വളരെ നല്ലതാണ്. നിങ്ങളുടെ വാക്യം വ്യക്തമാണ്.";
+      if (mode === "daily") {
+        const expected = dailyLessons[lessonIndex].en.toLowerCase();
+        if (text.toLowerCase().includes(expected)) {
+          en = "Excellent! Correct sentence.";
+          ml = "വളരെ നല്ലത്! ശരിയായ വാക്യം.";
+        } else {
+          en = "Almost correct. Try again.";
+          ml = "ശരിയാകാൻ അടുത്തിരിക്കുന്നു. വീണ്ടും ശ്രമിക്കൂ.";
+        }
       }
 
       setReplyEn(en);
       setReplyMl(ml);
 
-      // ✅ English first
       speak(en, "en-IN");
-
-      // ✅ Malayalam after short delay
-      setTimeout(() => {
-        speak(ml, "ml-IN");
-      }, 900);
+      setTimeout(() => speak(ml, "ml-IN"), 900);
     };
   };
 
   return (
     <div style={{ padding: 20 }}>
       <h2>SpeakEasy English 🇮🇳</h2>
-      <p>English speaking practice with Malayalam support</p>
+      <p>Malayalam supported English speaking practice</p>
 
+      {/* Mode buttons */}
+      <div style={{ marginBottom: 20 }}>
+        <button onClick={() => setMode("free")}>Free Speak</button>{" "}
+        <button onClick={() => setMode("daily")}>Daily Lessons</button>
+      </div>
+
+      {/* Daily lesson view */}
+      {mode === "daily" && (
+        <div style={{ marginBottom: 20 }}>
+          <h3>Daily Lesson</h3>
+          <p><b>Malayalam:</b> {dailyLessons[lessonIndex].ml}</p>
+          <p><b>Expected English:</b> {dailyLessons[lessonIndex].en}</p>
+          <button
+            onClick={() =>
+              setLessonIndex((lessonIndex + 1) % dailyLessons.length)
+            }
+          >
+            Next Lesson
+          </button>
+        </div>
+      )}
+
+      {/* Speak button */}
       <button
         onClick={startListening}
         style={{ fontSize: 18, padding: 12 }}
@@ -79,6 +105,7 @@ export default function Home() {
         🎤 Speak English
       </button>
 
+      {/* Feedback */}
       {spoken && (
         <div style={{ marginTop: 20 }}>
           <p><b>You said:</b> {spoken}</p>
